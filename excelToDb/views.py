@@ -1,20 +1,22 @@
 import json
 import sys
-from django.shortcuts import render
+from excelToDb.swaggerDocs import ExcelUploadRequest, ExcelUploadResponse
+# from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.utils import timezone
-
-# Create your views here.
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework.parsers import MultiPartParser, JSONParser
-
-import pandas as pd
 
 from excelToDb.models import ExcelUpload
 from excelToDb.serializers import ExcelUploadCreateSerializer, ExcelUploadViewSerializer
 
+from drf_spectacular.utils import extend_schema
+
+
+# Create your views here.
+
+@extend_schema(
+    tags=['Excel File Uploads'],
+)
 class ExcelUploadViewSet(viewsets.ModelViewSet):
     queryset = ExcelUpload.objects.all()
     
@@ -22,46 +24,34 @@ class ExcelUploadViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return ExcelUploadViewSerializer  # Use Retrieve Serializer for GET
         return ExcelUploadCreateSerializer  # Use Create Serializer for POST/PUT
+    
+    @extend_schema(
+        summary="List all excel file uploads",
+        description="Retrieve a list of all excel file upload records.",
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
-    def create(self, request, *args, **kwargs):
+    @extend_schema(
+        summary="Upload a document",
+        description="Upload a new document file",
+        request=ExcelUploadRequest,
+        responses=ExcelUploadResponse
+    )
+    def create(self, request):
+        # preparing the fields in proper format
         file = request.FILES.get('file')
         sheet_name = request.data.get('sheet_name')
-        columns = request.data.get('columns')
-        schedule = parse_datetime(request.data.get('schedule'))
-        schedule = timezone.make_aware(schedule)
 
-        print('request:', request.data)
+        if " " in file.name or " " in sheet_name:
+            return Response(
+                {"error": "no space allowed in filename or sheetname"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        columns = json.loads('[' + request.data.get('columns') + ']')
         
-        column_names = []
-        if 'columns' in request.data:
-            # Try to handle both string and list inputs
-            if isinstance(request.data['columns'], str):
-                try:
-                    # Try to parse if it's a JSON string
-                    column_names = json.loads(request.data['columns'])
-                except json.JSONDecodeError:
-                    # If not JSON, split by comma
-                    column_names = [col.strip() for col in request.data['columns'].split(',')]
-            else:
-                column_names = request.data['columns']
-
-
-        print("column names from request:", column_names)
-        print('schedule:', type(schedule))
-        
-        try:
-            # Validate the Excel file and sheet name
-            df = pd.read_excel(file, sheet_name=sheet_name)
-            available_columns = df.columns.tolist()
-            
-            print('available columns in sheet:', available_columns)
-            # Validate requested columns exist in the sheet
-            if not all(col in available_columns for col in column_names):
-                return Response(
-                    {"error": "Some requested columns do not exist in the sheet"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
+        try:            
             # Prepare data for serializer
             data = {
                 'file': file,
@@ -69,9 +59,8 @@ class ExcelUploadViewSet(viewsets.ModelViewSet):
                 'columns': columns
             }
 
-            
-            if schedule:
-                data['schedule'] = schedule
+            if request.data.get('schedule'):
+                data['schedule'] = parse_datetime(request.data.get('schedule'))
             
             print('data:', data)
             serializer = self.get_serializer(data=data)

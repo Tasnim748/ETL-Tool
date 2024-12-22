@@ -1,11 +1,12 @@
 from importlib.metadata import requires
 from rest_framework import serializers
 from excelToDb.models import Column, ExcelUpload, Schedule
+import pandas as pd
 
 class ColumnSerializer(serializers.ModelSerializer):
     class Meta:
         model = Column
-        fields = ['name']
+        fields = ['name', 'type']
 
 
 class ScheduleSerializer(serializers.ModelSerializer):
@@ -19,12 +20,12 @@ class ExcelUploadViewSerializer(serializers.ModelSerializer):
     columns = ColumnSerializer(required=False, many=True)
     class Meta:
         model = ExcelUpload
-        fields = ['id', 'file', 'sheet_name', 'columns', 'schedule']
+        fields = ['id', 'file', 'sheet_name', 'columns', 'schedule', 'table_name']
 
 
 class ExcelUploadCreateSerializer(serializers.ModelSerializer):
     schedule = serializers.DateTimeField(input_formats=['%Y-%m-%dT%H:%M'])
-    columns = serializers.CharField(required=False)
+    columns = ColumnSerializer(many=True)
 
     class Meta:
         model = ExcelUpload
@@ -33,16 +34,27 @@ class ExcelUploadCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         columns = validated_data.pop('columns')
         schedule_data = validated_data.pop('schedule', None)
-        columns_data = [col.strip() for col in columns.split(',')]
         
+
+        # Validate requested columns exist in the sheet
+        df = pd.read_excel(validated_data['file'], sheet_name=validated_data['sheet_name'])
+        available_columns = df.columns.tolist()
+        print('available columns in sheet:', available_columns)
+        column_names = [col['name'] for col in columns]
+        print("column names from request:", column_names)
+        if not all(col in available_columns for col in column_names):
+            raise Exception("Some requested columns do not exist in the sheet")
+        
+
+        # Create Excel upload
         excel_upload = ExcelUpload.objects.create(
             **validated_data, 
-            table_name=f"excel_data_{validated_data['sheet_name'].lower()}_{ExcelUpload.objects.count() + 1}"
+            table_name=f"{validated_data['file'].name.split('.')[0].lower()}_{validated_data['sheet_name'].lower()}"
         )
         
         # Create columns
-        for column_data in columns_data:
-            Column.objects.create(excel_upload=excel_upload, name=column_data)
+        for column in columns:
+            Column.objects.create(excel_upload=excel_upload, **column)
         
         # Create schedule if provided
         if schedule_data:

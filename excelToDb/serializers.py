@@ -1,7 +1,9 @@
-from importlib.metadata import requires
 from rest_framework import serializers
 from excelToDb.models import Column, ExcelUpload, Schedule
 import pandas as pd
+
+from excelToDb.tasks import trigger_schedule
+from excelToDb.utils.runSchedule import run_schedule
 
 class ColumnSerializer(serializers.ModelSerializer):
     class Meta:
@@ -57,10 +59,16 @@ class ExcelUploadCreateSerializer(serializers.ModelSerializer):
             Column.objects.create(excel_upload=excel_upload, **column)
         
         # Create schedule if provided
+        schedule = None
         if schedule_data:
-            Schedule.objects.create(
+            schedule = Schedule.objects.create(
                 excel_upload=excel_upload, 
                 scheduled_at=schedule_data
             )
+
+            trigger_schedule.apply_async(
+                args=[schedule.id],
+                eta=schedule.scheduled_at
+            )
         
-        return excel_upload
+        return schedule

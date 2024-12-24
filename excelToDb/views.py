@@ -1,4 +1,3 @@
-import json
 import sys
 from excelToDb.swaggerDocs import ExcelUploadRequest, ExcelUploadResponse
 # from django.utils import timezone
@@ -10,6 +9,8 @@ from excelToDb.models import ExcelUpload
 from excelToDb.serializers import ExcelUploadCreateSerializer, ExcelUploadViewSerializer
 
 from drf_spectacular.utils import extend_schema
+
+from excelToDb.utils.parseJson import parse_array_of_objects
 
 
 # Create your views here.
@@ -49,9 +50,10 @@ class ExcelUploadViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        columns = json.loads('[' + request.data.get('columns') + ']')
         
         try:            
+            columns = parse_array_of_objects(request.data.get('columns'))
+            print("columns:", columns)
             # Prepare data for serializer
             data = {
                 'file': file,
@@ -75,6 +77,7 @@ class ExcelUploadViewSet(viewsets.ModelViewSet):
             
         except Exception as e:
             print(f"Error occurred on line {sys.exc_info()[-1].tb_lineno}: {str(e)}")
+            print(e)
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST

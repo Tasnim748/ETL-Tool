@@ -48,6 +48,7 @@ def run_schedule(schedule: Schedule):
             cursor.execute(create_table_query)
     except Exception as e:
         print(f"Error on creating table: {e}")
+        return
 
     # 3. Load data from the Excel file
     excel_file_path = excel_upload.file.path
@@ -56,6 +57,7 @@ def run_schedule(schedule: Schedule):
         df = df.replace({np.nan: ''})
     except Exception as e:
         print(f"Error reading Excel file: {e}")
+        return
 
     # 4. Filter data based on selected columns
     selected_columns = [col.name for col in columns]
@@ -73,6 +75,7 @@ def run_schedule(schedule: Schedule):
                 cursor.execute(insert_query, tuple(row))
     except Exception as e:
         print(f"Error on inserting data: {e}")
+        return
 
     # Mark the schedule as executed
     schedule.is_executed = True

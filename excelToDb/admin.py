@@ -9,4 +9,4 @@ admin.site.register(Schedule)
 @admin.register(ExcelUpload)
 class ExcelUploadAdmin(admin.ModelAdmin):
     inlines = [ScheduleInline, ColumnInline]
-    list_display = ['sheet_name']
+    list_display = ['id', 'sheet_name']

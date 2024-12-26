@@ -9,7 +9,7 @@ class ExcelUpload(models.Model):
     is_processed = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.table_name
+        return f"{self.table_name} (id={self.id})"
 
 
 
@@ -23,7 +23,7 @@ class Column(models.Model):
     type = models.CharField(max_length=50, blank=True, null=True)
     
     def __str__(self):
-        return f"{self.name} - {self.excel_upload.sheet_name}"
+        return f"{self.name} - {self.excel_upload.sheet_name})"
 
 
 
@@ -37,4 +37,4 @@ class Schedule(models.Model):
     is_executed = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Schedule for {self.excel_upload.sheet_name}"
+        return f"Schedule for {self.excel_upload.sheet_name} (id={self.id})"

@@ -99,7 +99,7 @@ DATABASES = {
         'PORT': '1433',                      # Default SQL Server port
         'OPTIONS': {
             'driver': 'ODBC Driver 18 for SQL Server',  # Ensure the driver matches the installed one
-            'extra_params': 'TrustServerCertificate=Yes;',         # Optional: Bypass certificate checks
+            'extra_params': 'TrustServerCertificate=Yes;',  # Optional: Bypass certificate checks
         },
     }
 }

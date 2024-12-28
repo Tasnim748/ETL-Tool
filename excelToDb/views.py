@@ -2,6 +2,7 @@ import sys
 from excelToDb.swaggerDocs import ExcelUploadRequest, ExcelUploadResponse, SetSchedule
 # from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.timezone import make_aware
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 
@@ -10,6 +11,7 @@ from excelToDb.serializers import ExcelUploadCreateSerializer, ExcelUploadViewSe
 
 from drf_spectacular.utils import extend_schema
 
+from excelToDb.tasks import trigger_schedule
 from excelToDb.utils.parseJson import parse_array_of_objects
 
 
@@ -49,6 +51,13 @@ class ExcelUploadViewSet(viewsets.ModelViewSet):
                 {"error": "no space allowed in filename or sheetname"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        if request.data.get('table_name'):
+            if " " in request.data.get('table_name'):
+                return Response(
+                    {"error": "no space allowed in table_name"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         
         try:            
@@ -60,9 +69,11 @@ class ExcelUploadViewSet(viewsets.ModelViewSet):
                 'sheet_name': sheet_name,
                 'columns': columns
             }
+            
+            data['table_name'] = request.data.get('table_name') if request.data.get('table_name') else f"{file.name.split('.')[0].lower()}_{sheet_name.lower()}"
 
             if request.data.get('schedule'):
-                data['schedule'] = parse_datetime(request.data.get('schedule'))
+                data['schedule'] = make_aware(parse_datetime(request.data.get('schedule')))
             
             print('data:', data)
             serializer = self.get_serializer(data=data)
@@ -97,16 +108,26 @@ def setSchedule(request):
     excelUploadId = request.data.get('excelUploadId')
 
     try:
-        scheduleObj, created = Schedule.objects.get_or_create(excel_upload=excelUploadId)
-        scheduleObj.scheduled_at = parse_datetime(request.data.get('schedule_time'))
+        excelUploadObj = ExcelUpload.objects.get(id=excelUploadId)
+        scheduleObj, created = Schedule.objects.get_or_create(excel_upload=excelUploadObj)
+        scheduleObj.scheduled_at = make_aware(parse_datetime(request.data.get('schedule_time')))
         scheduleObj.save()
+
+        print(scheduleObj.id)
+        print(scheduleObj.scheduled_at)
+
+        trigger_schedule.apply_async(
+            args=[scheduleObj.id],
+            eta=scheduleObj.scheduled_at
+        )
 
         return Response(
             {"message": "Schedule set successfully"},
             status=status.HTTP_202_ACCEPTED
         )
     except Exception as e:
+        print(e)
         return Response(
-            {"message": "Record not found"},
+            {"message": f"there is no excel upload record with id {excelUploadId}"},
             status=status.HTTP_404_NOT_FOUND
         )

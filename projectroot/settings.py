@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -92,11 +95,11 @@ WSGI_APPLICATION = 'projectroot.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'mssql',
-        'NAME': 'ETL_DB',        # Replace with your database name
-        'USER': 'SA',             # Replace with your SQL Server username (e.g., SA)
-        'PASSWORD': '1234_ms_sql',         # Replace with your SQL Server password
-        'HOST': 'localhost',                 # Or the server's IP if hosted remotely
-        'PORT': '1433',                      # Default SQL Server port
+        'NAME': os.environ['DATABASE_NAME'],        # Replace with your database name
+        'USER': os.environ['DATABASE_USER'],        # Replace with your SQL Server username (e.g., SA)
+        'PASSWORD': os.environ['DATABASE_PASS'],    # Replace with your SQL Server password
+        'HOST': 'localhost',    # Or the server's IP if hosted remotely
+        'PORT': '1433',    # Default SQL Server port
         'OPTIONS': {
             'driver': 'ODBC Driver 18 for SQL Server',  # Ensure the driver matches the installed one
             'extra_params': 'TrustServerCertificate=Yes;',  # Optional: Bypass certificate checks
@@ -129,7 +132,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Asia/Dhaka'
+TIME_ZONE = os.environ['TIMEZONE']
 
 USE_I18N = True
 
@@ -171,7 +174,6 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Asia/Dhaka'
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 

@@ -39,7 +39,8 @@ def run_schedule(schedule: Schedule):
     BEGIN
         CREATE TABLE {table_name} (
             id INT IDENTITY(1,1) PRIMARY KEY,
-            {column_definitions}
+            {column_definitions},
+            created_at DATETIME DEFAULT GETDATE()
         );
     END;
     """

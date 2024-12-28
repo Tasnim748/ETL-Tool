@@ -10,6 +10,14 @@ ExcelUploadRequest = {
                 'format': 'binary',
                 'description': 'File name must be without any space'
             },
+            'sheet_name': {
+                'type': 'string',
+                'description': 'Sheet name cannot contain any space'
+            },
+            'table_name': {
+                'type': 'string',
+                'description': 'Table name cannot contain any space'
+            },
             'columns': {
                 'type': 'array',
                 'items': {
@@ -21,15 +29,6 @@ ExcelUploadRequest = {
                 },
                 'description': "Column type should be from ['INT', 'FLOAT', 'NVARCHAR(MAX)', 'TEXT']"
             },
-            'sheet_name': {
-                'type': 'string',
-                'description': 'Sheet name cannot contain any space'
-            },
-            'schedule': {
-                'type': 'string',
-                'format': 'date-time',
-                'example': datetime.datetime.now() + datetime.timedelta(minutes=15)
-            }
         },
         'required': ['file', 'columns', 'sheet_name']
     }

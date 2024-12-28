@@ -26,16 +26,16 @@ class ExcelUploadViewSerializer(serializers.ModelSerializer):
 
 
 class ExcelUploadCreateSerializer(serializers.ModelSerializer):
-    schedule = serializers.DateTimeField(input_formats=['%Y-%m-%dT%H:%M'])
+    # schedule = serializers.DateTimeField(input_formats=['%Y-%m-%dT%H:%M'])
     columns = ColumnSerializer(many=True)
 
     class Meta:
         model = ExcelUpload
-        fields = ['id', 'file', 'sheet_name', 'columns', 'schedule']
+        fields = ['id', 'file', 'sheet_name', 'columns', 'table_name']
 
     def create(self, validated_data):
         columns = validated_data.pop('columns')
-        schedule_data = validated_data.pop('schedule', None)
+        # schedule_data = validated_data.pop('schedule', None)
         
 
         # Validate requested columns exist in the sheet
@@ -50,25 +50,11 @@ class ExcelUploadCreateSerializer(serializers.ModelSerializer):
 
         # Create Excel upload
         excel_upload = ExcelUpload.objects.create(
-            **validated_data, 
-            table_name=f"{validated_data['file'].name.split('.')[0].lower()}_{validated_data['sheet_name'].lower()}"
+            **validated_data,
         )
         
         # Create columns
         for column in columns:
             Column.objects.create(excel_upload=excel_upload, **column)
-        
-        # Create schedule if provided
-        schedule = None
-        if schedule_data:
-            schedule = Schedule.objects.create(
-                excel_upload=excel_upload, 
-                scheduled_at=schedule_data
-            )
 
-            trigger_schedule.apply_async(
-                args=[schedule.id],
-                eta=schedule.scheduled_at
-            )
-        
-        return schedule
+        return excel_upload

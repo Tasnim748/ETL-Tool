@@ -33,7 +33,7 @@ class Schedule(models.Model):
         on_delete=models.CASCADE,
         related_name='schedule'
     )
-    scheduled_at = models.DateTimeField()
+    scheduled_at = models.DateTimeField(null=True, blank=True)
     is_executed = models.BooleanField(default=False)
 
     def __str__(self):

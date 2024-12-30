@@ -1,57 +1,43 @@
+from csv import excel
 import numpy as np
 import pandas as pd
 from django.db import connection
 from django.utils.timezone import now
 from excelToDb.models import Schedule
+from excelToDb.utils.SQLServerConnection import SQLServerConnection
 
 def run_schedule(schedule: Schedule):
-    """
-    Executes the schedule for a given Schedule object.
-
-    Args:
-        schedule (Schedule): The Schedule object to process.
-
-    Returns:
-        str: Summary of the schedule execution.
-    """
     excel_upload = schedule.excel_upload
-    table_name = excel_upload.table_name
-    scheduled_at = schedule.scheduled_at
-    sheet_name = excel_upload.sheet_name
 
-    # 1. Ensure the schedule is not executed before the scheduled time
+    databaseinfo=None
+    try:
+        databaseinfo = excel_upload.databaseinfo
+    except Exception as e:
+        print(e)
+        return
+
+    # databaseinfo attributes
+    server_ip = databaseinfo.server_ip
+    database_name = databaseinfo.database_name
+    table_name = databaseinfo.table_name
+    user_id = databaseinfo.user_id
+    password = databaseinfo.password
+
+    sheet_name = excel_upload.sheet_name
+    scheduled_at = schedule.scheduled_at
+
+    # Ensure the schedule is not executed before the scheduled time
     if now() < scheduled_at:  # Use Django's timezone-aware now()
         return f"Schedule for {table_name} is not ready to execute."
 
-    # 2. Create the table if it does not exist
+    # Generate table creation query
     columns = excel_upload.columns.all()  # Fetch related Column objects
-    column_definitions = ", ".join([
+    columns_definition = ", ".join([
         f"[{col.name}] {col.type if col.type in ['INT', 'FLOAT', 'NVARCHAR(MAX)', 'TEXT'] else 'TEXT'}"
         for col in columns
     ])
 
-    create_table_query = f"""
-    IF NOT EXISTS (
-        SELECT 1
-        FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_NAME = '{table_name}'
-    )
-    BEGIN
-        CREATE TABLE {table_name} (
-            id INT IDENTITY(1,1) PRIMARY KEY,
-            {column_definitions},
-            created_at DATETIME DEFAULT GETDATE()
-        );
-    END;
-    """
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(create_table_query)
-    except Exception as e:
-        print(f"Error on creating table: {e}")
-        return
-
-    # 3. Load data from the Excel file
+    # Load data from the Excel file
     excel_file_path = excel_upload.file.path
     try:
         df = pd.read_excel(excel_file_path, sheet_name=sheet_name)
@@ -60,23 +46,35 @@ def run_schedule(schedule: Schedule):
         print(f"Error reading Excel file: {e}")
         return
 
-    # 4. Filter data based on selected columns
+    # Filter data based on selected columns
     selected_columns = [col.name for col in columns]
     filtered_data = df[selected_columns]
 
-    # 5. Insert data into the table
     try:
-        with connection.cursor() as cursor:
-            for _, row in filtered_data.iterrows():
-                placeholders = ", ".join(["%s"] * len(selected_columns))
-                # print("placeholders:", placeholders)
-                insert_query = f"INSERT INTO {table_name} ({', '.join(selected_columns)}) VALUES ({placeholders})"
-                # print("insert_query:", insert_query)
-                # print("row:", row)
-                cursor.execute(insert_query, tuple(row))
+        with SQLServerConnection(server_ip, database_name, user_id, password) as sql_conn:
+            # Create table if it doesn't exist
+            sql_conn.create_table_if_not_exists(table_name, columns_definition)
+            # Your existing code for data insertion goes here
+            cursor = sql_conn.connection.cursor()
+            
+            
+            # Insert data into the table
+            try:
+                with sql_conn.connection.cursor() as cursor:
+                    for _, row in filtered_data.iterrows():
+                        placeholders = ", ".join(["?"] * len(selected_columns))
+                        insert_query = f"INSERT INTO {table_name} ({', '.join(selected_columns)}) VALUES ({placeholders})"
+                        cursor.execute(insert_query, tuple(row))
+                        sql_conn.connection.commit()
+            except Exception as e:
+                print(f"Error on inserting data: {e}")
+                return
+
+
     except Exception as e:
-        print(f"Error on inserting data: {e}")
+        print(f"Error with database: {e}")
         return
+
 
     # Mark the schedule as executed
     schedule.is_executed = True

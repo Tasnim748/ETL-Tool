@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from excelToDb.models import Column, ExcelUpload, Schedule
+from excelToDb.models import Column, DatabaseInfo, ExcelUpload, Schedule
 import pandas as pd
 
 from excelToDb.tasks import trigger_schedule
@@ -16,13 +16,19 @@ class ScheduleSerializer(serializers.ModelSerializer):
         model = Schedule
         fields = ['scheduled_at']
 
+class DatabaseInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DatabaseInfo
+        fields = ['table_name']
+
 
 class ExcelUploadViewSerializer(serializers.ModelSerializer):
     schedule = ScheduleSerializer(required=False)
+    databaseinfo = DatabaseInfoSerializer(required=False)
     columns = ColumnSerializer(required=False, many=True)
     class Meta:
         model = ExcelUpload
-        fields = ['id', 'file', 'sheet_name', 'columns', 'schedule', 'table_name']
+        fields = ['id', 'file', 'sheet_name', 'columns', 'schedule', 'databaseinfo']
 
 
 class ExcelUploadCreateSerializer(serializers.ModelSerializer):
@@ -31,7 +37,7 @@ class ExcelUploadCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ExcelUpload
-        fields = ['id', 'file', 'sheet_name', 'columns', 'table_name']
+        fields = ['id', 'file', 'sheet_name', 'columns']
 
     def create(self, validated_data):
         columns = validated_data.pop('columns')

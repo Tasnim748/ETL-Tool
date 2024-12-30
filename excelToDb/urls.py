@@ -1,6 +1,6 @@
 from django.urls import path
 
-from excelToDb.views import ExcelUploadViewSet, setSchedule
+from excelToDb.views import ExcelUploadViewSet, setDatabaseInfo, setSchedule
 
 
 urlpatterns = [
@@ -9,6 +9,7 @@ urlpatterns = [
              'post': 'create'
          })),
 
-    path('set-schedule/', setSchedule)
+    path('set-schedule/', setSchedule),
+    path('set-database-info', setDatabaseInfo)
     
 ]

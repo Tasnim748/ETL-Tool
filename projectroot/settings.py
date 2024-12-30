@@ -94,16 +94,8 @@ WSGI_APPLICATION = 'projectroot.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'mssql',
-        'NAME': os.environ['DATABASE_NAME'],        # Replace with your database name
-        'USER': os.environ['DATABASE_USER'],        # Replace with your SQL Server username (e.g., SA)
-        'PASSWORD': os.environ['DATABASE_PASS'],    # Replace with your SQL Server password
-        'HOST': 'localhost',    # Or the server's IP if hosted remotely
-        'PORT': '1433',    # Default SQL Server port
-        'OPTIONS': {
-            'driver': 'ODBC Driver 18 for SQL Server',  # Ensure the driver matches the installed one
-            'extra_params': 'TrustServerCertificate=Yes;',  # Optional: Bypass certificate checks
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 

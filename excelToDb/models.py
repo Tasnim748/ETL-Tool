@@ -38,3 +38,24 @@ class Schedule(models.Model):
 
     def __str__(self):
         return f"Schedule for {self.excel_upload.sheet_name} (id={self.id})"
+    
+
+class DatabaseInfo(models.Model):
+    excel_upload = models.OneToOneField(
+        ExcelUpload,
+        on_delete=models.CASCADE,
+        related_name='databaseinfo'
+    )
+    server_ip = models.CharField(max_length=255, null=True, blank=True)
+    database_name = models.CharField(max_length=255, null=True, blank=True)
+    table_name = models.CharField(max_length=255, null=True, blank=True)
+    user_id = models.CharField(max_length=255, null=True, blank=True)
+    password = models.CharField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.server_ip} {self.table_name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.table_name:
+            self.table_name = f"{self.excel_upload.file.name.replace('/', '.').split('.')[1].lower()}_{self.excel_upload.sheet_name}"
+        super().save(*args, **kwargs)

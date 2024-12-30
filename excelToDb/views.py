@@ -1,12 +1,12 @@
 import sys
-from excelToDb.swaggerDocs import ExcelUploadRequest, ExcelUploadResponse, SetSchedule
+from excelToDb.swaggerDocs import ExcelUploadRequest, ExcelUploadResponse, SetSchedule, SetDatabaseInfo
 # from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 
-from excelToDb.models import ExcelUpload, Schedule
+from excelToDb.models import DatabaseInfo, ExcelUpload, Schedule
 from excelToDb.serializers import ExcelUploadCreateSerializer, ExcelUploadViewSerializer
 
 from drf_spectacular.utils import extend_schema
@@ -51,13 +51,6 @@ class ExcelUploadViewSet(viewsets.ModelViewSet):
                 {"error": "no space allowed in filename or sheetname"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        if request.data.get('table_name'):
-            if " " in request.data.get('table_name'):
-                return Response(
-                    {"error": "no space allowed in table_name"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
 
         
         try:            
@@ -70,7 +63,6 @@ class ExcelUploadViewSet(viewsets.ModelViewSet):
                 'columns': columns
             }
             
-            data['table_name'] = request.data.get('table_name') if request.data.get('table_name') else f"{file.name.split('.')[0].lower()}_{sheet_name.lower()}"
 
             if request.data.get('schedule'):
                 data['schedule'] = make_aware(parse_datetime(request.data.get('schedule')))
@@ -95,20 +87,27 @@ class ExcelUploadViewSet(viewsets.ModelViewSet):
             )
         
 
+
+
+
+
+
+
 from rest_framework.decorators import api_view
-
-
 @extend_schema(
     summary="Set database insertion schedule",
     description="Set database insertion schedule",
     request=SetSchedule,
+    tags=["Set schedule for uploaded excel file"]
 )
 @api_view(['POST'])
 def setSchedule(request):
     excelUploadId = request.data.get('excelUploadId')
 
     try:
+        print('dhukse')
         excelUploadObj = ExcelUpload.objects.get(id=excelUploadId)
+        print('pass hoise')
         scheduleObj, created = Schedule.objects.get_or_create(excel_upload=excelUploadObj)
         scheduleObj.scheduled_at = make_aware(parse_datetime(request.data.get('schedule_time')))
         scheduleObj.save()
@@ -131,3 +130,52 @@ def setSchedule(request):
             {"message": f"there is no excel upload record with id {excelUploadId}"},
             status=status.HTTP_404_NOT_FOUND
         )
+
+
+
+
+
+
+
+
+
+@extend_schema(
+    summary="Set database information for a given excel upload record",
+    description="Set database information",
+    request=SetDatabaseInfo,
+    tags=["Set database information for uploaded excel file"]
+)
+@api_view(['POST'])
+def setDatabaseInfo(request):
+    excelUploadId = request.data.get('excelUploadId')
+
+    try:
+        print('dhukse')
+        excelUploadObj = ExcelUpload.objects.get(id=excelUploadId)
+        print('pass hoise')
+        databaseInfoObj, created = DatabaseInfo.objects.get_or_create(excel_upload=excelUploadObj)
+        databaseInfoObj.server_ip = request.data.get('server_ip')
+        databaseInfoObj.database_name = request.data.get('database_name')
+
+        if request.data.get('table_name'):
+            databaseInfoObj.table_name = request.data.get('table_name')
+
+        databaseInfoObj.user_id = request.data.get('user_id')
+        databaseInfoObj.password = request.data.get('password')
+
+        databaseInfoObj.save()
+
+        return Response(
+            {"message": "success"},
+            status=status.HTTP_201_CREATED
+        )
+    
+    except Exception as e:
+        print("error:", e)
+        return Response(
+            {"message": f"there is no excel upload record with id {excelUploadId}"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+

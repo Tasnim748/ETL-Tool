@@ -14,10 +14,6 @@ ExcelUploadRequest = {
                 'type': 'string',
                 'description': 'Sheet name cannot contain any space'
             },
-            'table_name': {
-                'type': 'string',
-                'description': 'Table name cannot contain any space'
-            },
             'columns': {
                 'type': 'array',
                 'items': {
@@ -59,6 +55,33 @@ SetSchedule = {
                 'type': 'string',
                 'format': 'date-time',
                 'example': datetime.datetime.now() + datetime.timedelta(minutes=15)
+            }
+        }
+    }
+}
+
+SetDatabaseInfo = {
+    'application/json': {
+        'type': 'object',
+        'properties': {
+            'excelUploadId': {
+                'type': 'integer',
+                'description': 'The id of your excel upload record'
+            },
+            'server_ip': {
+                'type': 'string',
+            },
+            'database_name': {
+                'type': 'string'
+            },
+            'table_name': {
+                'type': 'string'
+            },
+            'user_id': {
+                'type': 'string'
+            },
+            'password': {
+                'type': 'string'
             }
         }
     }

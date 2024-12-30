@@ -12,11 +12,10 @@ Before setting up the project, ensure you have the following installed on your s
 ## Step 1: Database Setup
 
 ### Microsoft SQL Server Configuration
-1. Install Microsoft SQL Server if not already installed
-2. Create a new database for the project named 'ETL_DB':
-   ```sql
-   CREATE DATABASE ETL_DB;
-   ```
+1. Download and install (choose Developer version) [Microsoft SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) [ For linux: [Follow the instructions](https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-ubuntu?view=sql-server-ver16&tabs=ubuntu2204#install-sql-server) ]
+2. Download and install [ODBC Driver 18 for SQL Server for Windows](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16#download-for-windows) [ For linux: [Follow the instructions](https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-ubuntu?view=sql-server-ver16&tabs=ubuntu2204#install-the-sql-server-command-line-tools) ]
+3. Create some new databases
+
 ## Step 2: Redis Setup
 
 ### Redis Installation and Configuration
@@ -60,13 +59,9 @@ Before setting up the project, ensure you have the following installed on your s
 ### Environment Configuration
 1. Create a `.env` file in the project root directory
 2. Add the following configurations (modify as needed):
-   
-### Database Configuration
 ```
 TIMEZONE=<your_timezone>
-DATABASE_NAME=ETL_DB
-DATABASE_PASS=<your_database_password>
-DATABASE_USER=<your_database_username>
+ODBC_DRIVER=ODBC Driver 18 for SQL Server
 ```
 
 
@@ -79,7 +74,7 @@ DATABASE_USER=<your_database_username>
 python manage.py migrate
 ```
 
-2. Create a superuser (admin):
+2. Create a superuser (admin) (optional):
 ```
 python manage.py createsuperuser
 ```
@@ -102,10 +97,10 @@ celery -A projectroot worker -l info
 ```
 
 ## Step 6: Running the Application
-
-1. Start the Django development server:
+1. Open a new terminal tab or window
+2. Start the Django development server:
    ```
    python manage.py runserver
    ```
-2. Access the application at `http://localhost:8000`
-3. Access the API interface at `http://localhost:8000/api/docs`
+3. Access the application at `http://localhost:8000`
+4. Access the API interface at `http://localhost:8000/api/docs`
